@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.jclouds.compute.ComputeService;
@@ -76,6 +77,21 @@ public class JCloudsSlave extends AbstractCloudSlave implements TrackedItem{
 
     private transient PhoneHomeMonitor phm;
 
+    /**
+     * Allows generating remote file system locations based on parameters determined at instance
+     * creation time.
+     *
+     * @param remoteFs remote file system location with special variables such as ${RANDOM_UUID}
+     *                 and ${CURRENT_TIME_MILLIS} allowed.
+     * @return remote file location with the special variables substituted.
+     */
+    private static String expandRemoteFsParams(String remoteFs) {
+        remoteFs = remoteFs.replaceAll("[$][{]RANDOM_UUID[}]", UUID.randomUUID().toString());
+        remoteFs = remoteFs.replaceAll("[$][{]CURRENT_TIME_MILLIS[}]",
+                                       Long.toString(System.currentTimeMillis()));
+        return remoteFs;
+    }
+
     @DataBoundConstructor
     @SuppressWarnings("rawtypes")
     public JCloudsSlave(String cloudName, String name, String nodeDescription, String remoteFS, String numExecutors, Mode mode, String labelString,
@@ -83,7 +99,7 @@ public class JCloudsSlave extends AbstractCloudSlave implements TrackedItem{
             Integer overrideRetentionTime, String user, String password, String privateKey, boolean authSudo, String jvmOptions, final boolean waitPhoneHome,
             final int waitPhoneHomeTimeout, final String credentialsId, final String preferredAddress,
             final boolean useJnlp) throws Descriptor.FormException, IOException {
-        super(name, nodeDescription, remoteFS, numExecutors, mode, labelString, launcher, retentionStrategy, nodeProperties);
+        super(name, nodeDescription, expandRemoteFsParams(remoteFS), numExecutors, mode, labelString, launcher, retentionStrategy, nodeProperties);
         this.stopOnTerminate = stopOnTerminate;
         this.cloudName = cloudName;
         this.overrideRetentionTime = overrideRetentionTime;
